@@ -1,6 +1,29 @@
 class UIView {
   constructor() {
     this.toastTimeout = null;
+    this.setupMobileInteractions();
+  }
+
+  setupMobileInteractions() {
+    const sidebar = document.getElementById("sidebar");
+    const header = document.querySelector("#sidebar .header");
+
+    // No mobile, clicar no cabeçalho abre/recolhe o painel
+    if (header) {
+      header.addEventListener("click", () => {
+        if (window.innerWidth <= 768) {
+          sidebar.classList.toggle("collapsed");
+        }
+      });
+    }
+  }
+
+  // Método auxiliar para fechar a sidebar no mobile ao focar no mapa
+  collapseSidebarOnMobile() {
+    if (window.innerWidth <= 768) {
+      const sidebar = document.getElementById("sidebar");
+      if (sidebar) sidebar.classList.add("collapsed");
+    }
   }
 
   showToast(message, duration = 3500) {
@@ -48,6 +71,8 @@ class UIView {
               ? `<button class="btn btn-sm btn-warning" id="btn-edit-nodes-${territory.id}">✏️ Desenho</button>`
               : `<button class="btn btn-sm btn-report" id="btn-save-shape-${territory.id}">💾 Salvar Forma</button>`
           }
+          <!-- NOVO BOTÃO WHATSAPP -->
+        <button class="btn btn-sm btn-whatsapp" id="btn-wsp-${territory.id}" style="background:#25D366; color:white;">📱 Zap</button>
           <button class="btn btn-sm btn-danger" id="btn-del-${territory.id}">🗑️ Excluir</button>
         </div>
       `;
@@ -55,6 +80,12 @@ class UIView {
       listContainer.appendChild(card);
 
       // Bind local de eventos com stopPropagation
+      // Bind do WhatsApp
+      document.getElementById(`btn-wsp-${territory.id}`).onclick = (e) => {
+        e.stopPropagation();
+        callbacks.onShareWhatsApp(territory.id);
+      };
+
       document.getElementById(`btn-edit-info-${territory.id}`).onclick = (
         e,
       ) => {

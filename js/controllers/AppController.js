@@ -89,6 +89,7 @@ class AppController {
         onAddQuadra: (id) => this.enableAddQuadraMode(id),
         onEditNodes: (id) => this.editTerritoryNodes(id),
         onSaveShape: (id) => this.saveTerritoryShape(id),
+        onShareWhatsApp: (id) => this.shareTerritoryWhatsApp(id),
         onDelete: (id) => this.deleteTerritory(id),
       },
     );
@@ -110,6 +111,9 @@ class AppController {
     if (this.model.selectedTerritoryId && this.mapView.territoryPolygons[id]) {
       const poly = this.mapView.territoryPolygons[id];
       this.mapView.fitBounds(poly.getBounds());
+
+      // Recolta o painel no mobile para dar foco ao mapa selecionado
+      this.uiView.collapseSidebarOnMobile();
     }
   }
 
@@ -200,6 +204,104 @@ class AppController {
       this.model.editingTerritoryShapeId = null;
       this.uiView.showToast("✅ Formato do território atualizado com sucesso!");
       this.renderAll();
+    }
+  }
+
+  async shareTerritoryWhatsApp(id) {
+    const territory = this.model.appData.find((t) => t.id === id);
+    if (!territory) return;
+
+    // 1. Focar o mapa no território antes da captura
+    this.selectTerritory(id);
+    this.uiView.showToast("📸 Gerando imagem do mapa...");
+
+    // Aguarda animação do zoom/enquadramento
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const mapElement = document.getElementById("map");
+
+    try {
+      // 2. Capturar a área do mapa como Imagem via html2canvas
+      const canvas = await html2canvas(mapElement, {
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: (element) =>
+          element.classList.contains("leaflet-control-container"), // Oculta controles do mapa na captura
+      });
+
+      // 3. Montar a mensagem detalhada em formato Markdown do WhatsApp
+      const total = territory.quadras.length;
+      const concluidas = territory.quadras.filter(
+        (q) => q.status === "concluida",
+      ).length;
+      const emAndamento = territory.quadras.filter(
+        (q) => q.status === "andamento",
+      ).length;
+      const pendentes = territory.quadras.filter(
+        (q) => q.status === "pendente",
+      ).length;
+      const pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+
+      const text = `📍 *RESUMO DO TERRITÓRIO*
+*Nome:* ${territory.name}
+*Progresso:* ${pct}% concluído
+
+📊 *Status das Quadras:*
+• Total: ${total}
+• Concluídas: ${concluidas}
+• Em Andamento: ${emAndamento}
+• Pendentes: ${pendentes}
+
+📅 *Gerado em:* ${new Date().toLocaleDateString("pt-BR")}`;
+
+      // 4. Copiar a imagem para a área de transferência (se suportado pelo navegador) ou baixar a imagem
+      canvas.toBlob(async (blob) => {
+        let imageCopied = false;
+        try {
+          if (navigator.clipboard && window.ClipboardItem) {
+            const item = new ClipboardItem({ "image/png": blob });
+            await navigator.clipboard.write([item]);
+            imageCopied = true;
+          }
+        } catch (err) {
+          imageCopied = false;
+        }
+
+        if (!imageCopied) {
+          // Se o navegador não permitir copiar a imagem direto, faz o download automático
+          const link = document.createElement("a");
+          link.download = `Territorio_${territory.name.replace(/\s+/g, "_")}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+          this.uiView.showToast(
+            "⬇️ Imagem baixada! Anexe-a na conversa do WhatsApp.",
+          );
+        } else {
+          this.uiView.showToast(
+            "📋 Imagem copiada! Basta colar (Ctrl+V) no WhatsApp.",
+          );
+        }
+
+        // 5. Abrir o WhatsApp com o texto pré-formatado
+        const encodedText = encodeURIComponent(text);
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+
+        setTimeout(() => {
+          window.open(whatsappUrl, "_blank");
+        }, 1000);
+      }, "image/png");
+    } catch (error) {
+      console.error("Erro ao gerar imagem para o WhatsApp:", error);
+      this.uiView.showToast(
+        "❌ Erro ao capturar mapa. Redirecionando com texto...",
+      );
+
+      // Fallback apenas para envio de texto caso falhe
+      const text = `📍 *Território:* ${territory.name}\nTotal de Quadras: ${territory.quadras.length}`;
+      window.open(
+        `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
+        "_blank",
+      );
     }
   }
 

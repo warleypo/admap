@@ -432,3 +432,134 @@ body {
     color: #475569;
   }
 }
+
+/* ==========================================================================
+   RESPONSIVIDADE (DISPOSITIVOS MÓVEIS / TABLETS)
+   ========================================================================== */
+
+/* Ajustes gerais de toque para mobile */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 100%;
+  }
+
+  body {
+    flex-direction: column-reverse; /* Coloca o mapa no topo e o painel embaixo se necessário, ou sobreposto */
+    position: relative;
+  }
+
+  /* O mapa passa a ocupar toda a tela */
+  #map {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+  }
+
+  /* A sidebar vira um painel deslizante (Drawer) na parte inferior */
+  #sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 60vh; /* Ocupa no máximo metade da tela */
+    height: auto;
+    border-right: none;
+    border-top: 2px solid #cbd5e1;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+    z-index: 1500;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Faz a lista de territórios rolar dentro do painel mobile */
+  .territory-list {
+    flex: 1;
+    overflow-y: auto !important;
+    max-height: 250px; /* Garante que a lista apareça */
+    padding-bottom: 20px;
+  }
+
+  /* Deixa a área de ações mais compacta no mobile */
+  .actions {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .actions .btn {
+    padding: 8px; /* Reduz o padding interno dos botões */
+    font-size: 0.8rem;
+  }
+
+  .rotate-hint {
+    display: none; /* Esconde a dica de rotação com shift no celular para economizar espaço */
+  }
+
+  /* Estado recolhido do painel no mobile */
+  #sidebar.collapsed {
+    transform: translateY(
+      calc(100% - 60px)
+    ); /* Deixa apenas o cabeçalho visível */
+  }
+
+  /* Cabeçalho do painel no mobile funciona como 'puxador' */
+  .header {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .header::after {
+    content: "▲"; /* Indicador visual de abrir/fechar */
+    font-size: 0.8rem;
+    transition: transform 0.3s;
+  }
+
+  #sidebar.collapsed .header::after {
+    transform: rotate(180deg);
+  }
+
+  /* Ajuste das ações e botões para toques mais fáceis (Touch Friendly) */
+  .actions {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .btn {
+    padding: 12px; /* Área de toque maior */
+    font-size: 0.9rem;
+  }
+
+  .btn-sm {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 colunas para os botões dos cards no mobile */
+    gap: 6px;
+  }
+
+  /* Ajuste de Modais para Telas Pequenas */
+  .modal {
+    width: 92vw;
+    max-height: 85vh;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  /* Ajuste da ferramenta de busca do Leaflet no mobile */
+  .leaflet-geosearch-bar {
+    max-width: calc(100vw - 30px) !important;
+    margin: 10px auto !important;
+  }
+}
