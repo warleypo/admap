@@ -211,25 +211,47 @@ class AppController {
     const territory = this.model.appData.find((t) => t.id === id);
     if (!territory) return;
 
-    // 1. Focar o mapa no território antes da captura
-    this.selectTerritory(id);
-    this.uiView.showToast("📸 Gerando imagem do mapa...");
+    this.uiView.showToast("📸 Gerando imagem do território...");
 
-    // Aguarda animação do zoom/enquadramento
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    const map = this.mapView.map;
+    const poly = this.mapView.territoryPolygons[id];
 
-    const mapElement = document.getElementById("map");
+    // 1. Centraliza no território sem animação para garantir alinhamento
+    if (poly && map) {
+      map.fitBounds(poly.getBounds(), { animate: false, padding: [40, 40] });
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     try {
-      // 2. Capturar a área do mapa como Imagem via html2canvas
-      const canvas = await html2canvas(mapElement, {
+      // 2. Prepara o SVG do Leaflet injetando os atributos XML necessários para o Canvas
+      const svgElement = map.getPanes().overlayPane.querySelector("svg");
+      if (svgElement) {
+        svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      }
+
+      // 3. Usa o html2canvas com a opção de ignorar transformações 3D problemáticas
+      const canvas = await html2canvas(map.getContainer(), {
         useCORS: true,
         allowTaint: true,
-        ignoreElements: (element) =>
-          element.classList.contains("leaflet-control-container"), // Oculta controles do mapa na captura
+        logging: false,
+        ignoreElements: (el) =>
+          el.classList.contains("leaflet-control-container") ||
+          el.classList.contains("leaflet-bottom") ||
+          el.classList.contains("leaflet-top"),
+        onclone: (clonedDoc) => {
+          // Força a visualização do SVG clonado e ajusta o transform no clone
+          const clonedSvg = clonedDoc.querySelector(
+            ".leaflet-overlay-pane svg",
+          );
+          if (clonedSvg) {
+            clonedSvg.style.visibility = "visible";
+            clonedSvg.style.display = "block";
+          }
+        },
       });
 
-      // 3. Montar a mensagem detalhada em formato Markdown do WhatsApp
+      // 4. Montar a mensagem do WhatsApp
       const total = territory.quadras.length;
       const concluidas = territory.quadras.filter(
         (q) => q.status === "concluida",
@@ -254,54 +276,84 @@ class AppController {
 
 📅 *Gerado em:* ${new Date().toLocaleDateString("pt-BR")}`;
 
-      // 4. Copiar a imagem para a área de transferência (se suportado pelo navegador) ou baixar a imagem
+      // 5. Copiar imagem ou realizar o Download
+      // canvas.toBlob(async (blob) => {
+      //   let imageCopied = false;
+      //   try {
+      //     if (navigator.clipboard && window.ClipboardItem) {
+      //       const item = new ClipboardItem({ "image/png": blob });
+      //       await navigator.clipboard.write([item]);
+      //       imageCopied = true;
+      //     }
+      //   } catch (e) {
+      //     imageCopied = false;
+      //   }
+
+      //   if (!imageCopied) {
+      //     const link = document.createElement("a");
+      //     link.download = `Territorio_${territory.name.replace(/\s+/g, "_")}.png`;
+      //     link.href = canvas.toDataURL("image/png");
+      //     link.click();
+      //     this.uiView.showToast("⬇️ Imagem baixada! Anexe-a no WhatsApp.");
+      //   } else {
+      //     this.uiView.showToast("📋 Imagem com demarcação copiada!");
+      //   }
+
+      //   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      //   setTimeout(() => {
+      //     window.open(whatsappUrl, "_blank");
+      //   }, 800);
+      // }, "image/png");
       canvas.toBlob(async (blob) => {
-        let imageCopied = false;
+        const file = new File(
+          [blob],
+          `Territorio_${territory.name.replace(/\s+/g, "_")}.png`,
+          { type: "image/png" },
+        );
+
+        // 1. Tenta usar o compartilhamento nativo do celular (Mobile)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: territory.name,
+              text: text,
+              files: [file], // Envia a imagem e o texto juntos nativamente
+            });
+            this.uiView.showToast("✅ Compartilhado com sucesso!");
+            return;
+          } catch (shareError) {
+            // Se o usuário cancelar o menu de compartilhamento, apenas encerra
+            if (shareError.name === "AbortError") return;
+          }
+        }
+
+        // 2. Fallback para Computador / WhatsApp Web (Cópia + Abertura da URL)
         try {
           if (navigator.clipboard && window.ClipboardItem) {
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
-            imageCopied = true;
+            this.uiView.showToast(
+              "📋 Imagem copiada! No WhatsApp Web, use Ctrl+V.",
+            );
           }
-        } catch (err) {
-          imageCopied = false;
-        }
-
-        if (!imageCopied) {
-          // Se o navegador não permitir copiar a imagem direto, faz o download automático
+        } catch (e) {
+          // Se falhar a cópia, faz o download do arquivo
           const link = document.createElement("a");
-          link.download = `Territorio_${territory.name.replace(/\s+/g, "_")}.png`;
+          link.download = file.name;
           link.href = canvas.toDataURL("image/png");
           link.click();
-          this.uiView.showToast(
-            "⬇️ Imagem baixada! Anexe-a na conversa do WhatsApp.",
-          );
-        } else {
-          this.uiView.showToast(
-            "📋 Imagem copiada! Basta colar (Ctrl+V) no WhatsApp.",
-          );
+          this.uiView.showToast("⬇️ Imagem baixada! Anexe-a na conversa.");
         }
 
-        // 5. Abrir o WhatsApp com o texto pré-formatado
-        const encodedText = encodeURIComponent(text);
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
-
+        // Abre a janela do WhatsApp com o texto preenchido
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
         setTimeout(() => {
           window.open(whatsappUrl, "_blank");
-        }, 1000);
+        }, 800);
       }, "image/png");
-    } catch (error) {
-      console.error("Erro ao gerar imagem para o WhatsApp:", error);
-      this.uiView.showToast(
-        "❌ Erro ao capturar mapa. Redirecionando com texto...",
-      );
-
-      // Fallback apenas para envio de texto caso falhe
-      const text = `📍 *Território:* ${territory.name}\nTotal de Quadras: ${territory.quadras.length}`;
-      window.open(
-        `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
-        "_blank",
-      );
+    } catch (err) {
+      console.error("Erro ao gerar imagem:", err);
+      this.uiView.showToast("❌ Falha ao capturar o mapa.");
     }
   }
 

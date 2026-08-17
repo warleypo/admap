@@ -6,6 +6,7 @@ class MapView {
       boxZoom: false,
       rotateControl: { closeOnReset: false },
       bearing: 0,
+      preferCanvas: true, //usa o canvas para renderizar polígonos e marcadores, melhorando a performance
     }).setView([-15.8042, -43.305], 16);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
