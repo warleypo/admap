@@ -330,7 +330,20 @@ body {
   border-radius: 4px;
 }
 
+@media print and (min-width: 769px) {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+}
+
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  /* Hide non-printable UI elements */
   body #sidebar,
   body .modal-overlay,
   body .toast-notification,
@@ -338,98 +351,24 @@ body {
   .a4-print-guide-overlay {
     display: none !important;
   }
-  @page {
-    size: A4 landscape;
-    margin: 0;
-  }
+
   html,
-  body {
-    width: 100vw !important;
-    height: 100vh !important;
+  body,
+  #app {
+    width: 100% !important;
+    height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
   }
-  body.printing-report #map {
-    display: none !important;
-  }
-  body.printing-report #printReportArea {
-    display: block !important;
-    width: 100%;
-    padding: 10mm;
-    color: #1e3a8a;
-  }
-  body.printing-map #printReportArea {
-    display: none !important;
-  }
-  body.printing-map #map {
-    display: block !important;
+
+  /* Force map element to cover full print canvas */
+  #map {
+    width: 100% !important;
+    height: 100% !important;
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 9999 !important;
-  }
-  .report-header {
-    border-bottom: 2px solid #1e3a8a;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-  }
-  .report-header h1 {
-    font-size: 1.4rem;
-    color: #1e3a8a;
-  }
-  .report-summary {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  .summary-box {
-    flex: 1;
-    border: 1px solid #cbd5e1;
-    padding: 8px;
-    border-radius: 4px;
-    text-align: center;
-  }
-  .summary-box strong {
-    display: block;
-    font-size: 1.1rem;
-    color: #1e3a8a;
-  }
-  .report-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-    font-size: 0.85rem;
-  }
-  .report-table th,
-  .report-table td {
-    border: 1px solid #cbd5e1;
-    padding: 8px 10px;
-    text-align: left;
-  }
-  .report-table th {
-    background: #f1f5f9;
-    font-weight: 600;
-  }
-  .badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-  .badge-concluida {
-    background: #dcfce7;
-    color: #166534;
-  }
-  .badge-andamento {
-    background: #fef9c3;
-    color: #854d0e;
-  }
-  .badge-pendente {
-    background: #f1f5f9;
-    color: #475569;
   }
 }
 
@@ -562,5 +501,80 @@ body {
   .leaflet-geosearch-bar {
     max-width: calc(100vw - 30px) !important;
     margin: 10px auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Organiza o container de ações da sidebar em linha */
+  .actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  /* Ajusta os botões para ocuparem espaço igual na mesma linha */
+  .actions .btn,
+  .actions .global-toggle {
+    flex: 1;
+    padding: 10px 4px;
+    font-size: 1.2rem; /* Aumenta o tamanho dos ícones/emojis para facilitar o toque */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* Esconde todos os elementos de texto dentro dos botões da sidebar no mobile */
+  .actions .btn span,
+  .actions .btn label,
+  .global-toggle input[type="checkbox"] + span,
+  .actions .btn text {
+    display: none;
+  }
+  /* esconde o botão de delimitar área */
+  .global-toggle:has(#togglePrintGuide) {
+    display: none;
+  }
+
+  /* Caso os textos estejam soltos dentro dos botões, esconde o texto direto mantendo apenas o primeiro nó/emoji */
+  .actions .btn {
+    font-size: 0; /* Esconde texto em nó filho direto */
+  }
+
+  /* Exibe apenas o primeiro caractere/emoji do botão */
+  .actions .btn::first-letter {
+    font-size: 1.2rem;
+  }
+
+  /* Expande a área útil da lista de territórios */
+  .territory-list {
+    flex: 1;
+    max-height: calc(50vh - 70px); /* Maximiza o espaço vertical disponível */
+    overflow-y: auto;
+  }
+
+  #btnPrintMap::after {
+    content: "🖨️";
+    font-size: 1.2rem;
+  }
+
+  #btnOpenReport::after {
+    content: "📊";
+    font-size: 1.2rem;
+  }
+
+  #btnOpenCampaign::after {
+    content: "🚀";
+    font-size: 1.2rem;
+  }
+
+  #btnStartDraw::after {
+    content: "🗺️";
+    font-size: 1.2rem;
   }
 }

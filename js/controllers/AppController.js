@@ -115,6 +115,8 @@ class AppController {
       // Recolta o painel no mobile para dar foco ao mapa selecionado
       this.uiView.collapseSidebarOnMobile();
     }
+
+    console.log("Território selecionado:", this.model.selectedTerritoryId);
   }
 
   startDrawingTerritory() {
@@ -478,7 +480,7 @@ class AppController {
     this.uiView.toggleModal("modalReportFilter", true);
   }
 
-  printCurrentMapScreen() {
+  printCurrentMapScreen2() {
     const currentCenter = this.mapView.map.getCenter();
     const currentZoom = this.mapView.map.getZoom();
     const currentBearing = this.mapView.map.getBearing
@@ -511,6 +513,129 @@ class AppController {
         if (chk && chk.checked && guide) guide.style.display = "flex";
       }, 300);
     }, 400);
+  }
+
+  printCurrentMapScreenBom() {
+    const map = this.mapView.map;
+    const mapContainer = document.getElementById("map");
+
+    if (!map || !mapContainer) return;
+
+    this.uiView.showToast("🖨️ Preparando impressão A4...");
+
+    const isMobile = window.innerWidth <= 768;
+    const originalWidth = mapContainer.style.width;
+    const originalHeight = mapContainer.style.height;
+
+    // No mobile forçamos a proporção A4; no desktop mantemos o tamanho do container ativo
+    if (isMobile) {
+      mapContainer.style.width = "1122px";
+      mapContainer.style.height = "793px";
+    }
+
+    // Notifica o Leaflet sobre o redimensionamento
+    map.invalidateSize();
+
+    // Reenquadra o território adicionando folga superior de segurança [topo, direita, baixo, esquerda]
+    const activeId = this.model.activeTerritoryId;
+    const poly = activeId ? this.mapView.territoryPolygons[activeId] : null;
+
+    if (poly) {
+      map.fitBounds(poly.getBounds(), {
+        animate: false,
+        paddingTopLeft: [50, 80], // Adiciona margem extra no topo para não cortar a linha superior
+        paddingBottomRight: [50, 50],
+      });
+    }
+
+    // Restaura as dimensões originais após a impressão
+    const restoreLayout = () => {
+      if (isMobile) {
+        mapContainer.style.width = originalWidth;
+        mapContainer.style.height = originalHeight;
+      }
+      map.invalidateSize();
+      if (poly) {
+        map.fitBounds(poly.getBounds(), { animate: false, padding: [30, 30] });
+      }
+      window.removeEventListener("afterprint", restoreLayout);
+    };
+
+    window.addEventListener("afterprint", restoreLayout);
+
+    setTimeout(() => {
+      window.print();
+    }, 600);
+  }
+
+  printCurrentMapScreen() {
+    const map = this.mapView.map;
+    const mapContainer = document.getElementById("map");
+
+    if (!map || !mapContainer) return;
+
+    this.uiView.showToast("🖨️ Preparando impressão A4...");
+
+    const isMobile = window.innerWidth <= 768;
+    const originalWidth = mapContainer.style.width;
+    const originalHeight = mapContainer.style.height;
+
+    if (isMobile) {
+      mapContainer.style.width = "1122px";
+      mapContainer.style.height = "793px";
+    }
+
+    map.invalidateSize();
+
+    const printGuideCheck = document.getElementById("togglePrintGuide");
+    const activeId =
+      printGuideCheck && !printGuideCheck.checked
+        ? this.model.selectedTerritoryId
+        : null;
+    const poly = activeId ? this.mapView.territoryPolygons[activeId] : null;
+
+    if (poly) {
+      if (isMobile) {
+        console.log(
+          "Ajustando zoom para impressão no mobile...",
+          activeId,
+          printGuideCheck,
+          printGuideCheck.checked,
+        );
+        // 1. Calcula o enquadramento com margens bem justas para aproximar a visão
+        map.fitBounds(poly.getBounds(), {
+          animate: false,
+          padding: [10, 10],
+        });
+
+        // 2. Aumenta 1 nível de zoom em relação ao cálculo automático
+        map.setZoom(map.getZoom() + 0, { animate: false });
+      } else {
+        map.fitBounds(poly.getBounds(), {
+          animate: false,
+          paddingTopLeft: [50, 80],
+          paddingBottomRight: [50, 50],
+        });
+      }
+    }
+
+    const restoreLayout = () => {
+      if (isMobile) {
+        mapContainer.style.width = originalWidth;
+        mapContainer.style.height = originalHeight;
+      }
+      map.invalidateSize();
+      if (poly) {
+        map.fitBounds(poly.getBounds(), { animate: false, padding: [30, 30] });
+      }
+      window.removeEventListener("afterprint", restoreLayout);
+    };
+
+    window.addEventListener("afterprint", restoreLayout);
+
+    setTimeout(() => {
+      window.print();
+    }, 600);
   }
 
   generateAndPrintReport() {
