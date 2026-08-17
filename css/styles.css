@@ -521,10 +521,11 @@ body {
     content: "▲"; /* Indicador visual de abrir/fechar */
     font-size: 0.8rem;
     transition: transform 0.3s;
+    transform: rotate(180deg);
   }
 
   #sidebar.collapsed .header::after {
-    transform: rotate(180deg);
+    transform: rotate(360deg);
   }
 
   /* Ajuste das ações e botões para toques mais fáceis (Touch Friendly) */
