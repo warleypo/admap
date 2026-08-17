@@ -587,11 +587,9 @@ class AppController {
 
     map.invalidateSize();
 
-    const printGuideCheck = document.getElementById("togglePrintGuide");
-    const activeId =
-      printGuideCheck && !printGuideCheck.checked
-        ? this.model.selectedTerritoryId
-        : null;
+    const activeId = !this.showAllTerritories
+      ? this.model.selectedTerritoryId
+      : null;
     const poly = activeId ? this.mapView.territoryPolygons[activeId] : null;
 
     if (poly) {
@@ -599,8 +597,7 @@ class AppController {
         console.log(
           "Ajustando zoom para impressão no mobile...",
           activeId,
-          printGuideCheck,
-          printGuideCheck.checked,
+          this.showAllTerritories,
         );
         // 1. Calcula o enquadramento com margens bem justas para aproximar a visão
         map.fitBounds(poly.getBounds(), {
@@ -609,13 +606,13 @@ class AppController {
         });
 
         // 2. Aumenta 1 nível de zoom em relação ao cálculo automático
-        map.setZoom(map.getZoom() + 0, { animate: false });
+        // map.setZoom(map.getZoom() + 0, { animate: false });
       } else {
-        map.fitBounds(poly.getBounds(), {
-          animate: false,
-          paddingTopLeft: [50, 80],
-          paddingBottomRight: [50, 50],
-        });
+        // map.fitBounds(poly.getBounds(), {
+        //   animate: false,
+        //   paddingTopLeft: [50, 80],
+        //   paddingBottomRight: [50, 50],
+        // });
       }
     }
 
