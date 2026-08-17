@@ -435,8 +435,8 @@ body {
   /* Estado recolhido do painel no mobile */
   #sidebar.collapsed {
     transform: translateY(
-      calc(100% - 60px)
-    ); /* Deixa apenas o cabeçalho visível */
+      calc(100% - 110px)
+    ); /* Deixa apenas o cabeçalho e botões visíveis */
   }
 
   /* Cabeçalho do painel no mobile funciona como 'puxador' */
@@ -492,7 +492,7 @@ body {
 
   /* Ajuste da ferramenta de busca do Leaflet no mobile */
   .leaflet-geosearch-bar {
-    max-width: calc(100vw - 30px) !important;
+    max-width: calc(100vw - 100px) !important;
     margin: 10px auto !important;
   }
 }

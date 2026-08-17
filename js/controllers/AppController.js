@@ -592,30 +592,6 @@ class AppController {
       : null;
     const poly = activeId ? this.mapView.territoryPolygons[activeId] : null;
 
-    if (poly) {
-      if (isMobile) {
-        console.log(
-          "Ajustando zoom para impressão no mobile...",
-          activeId,
-          this.showAllTerritories,
-        );
-        // 1. Calcula o enquadramento com margens bem justas para aproximar a visão
-        // map.fitBounds(poly.getBounds(), {
-        //   animate: false,
-        //   padding: [10, 10],
-        // });
-
-        // 2. Aumenta 1 nível de zoom em relação ao cálculo automático
-        // map.setZoom(map.getZoom() + 0, { animate: false });
-      } else {
-        // map.fitBounds(poly.getBounds(), {
-        //   animate: false,
-        //   paddingTopLeft: [50, 80],
-        //   paddingBottomRight: [50, 50],
-        // });
-      }
-    }
-
     const restoreLayout = () => {
       if (isMobile) {
         mapContainer.style.width = originalWidth;
