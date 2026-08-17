@@ -1,8 +1,10 @@
 class AppController {
-  constructor(model, mapView, uiView) {
+  constructor(model, mapView, uiView, printService, whatsappService) {
     this.model = model;
     this.mapView = mapView;
     this.uiView = uiView;
+    this.printService = printService;
+    this.whatsappService = whatsappService;
 
     this.tempPolygonLayer = null;
     this.editingTerritoryId = null;
@@ -211,152 +213,7 @@ class AppController {
 
   async shareTerritoryWhatsApp(id) {
     const territory = this.model.appData.find((t) => t.id === id);
-    if (!territory) return;
-
-    this.uiView.showToast("📸 Gerando imagem do território...");
-
-    const map = this.mapView.map;
-    const poly = this.mapView.territoryPolygons[id];
-
-    // 1. Centraliza no território sem animação para garantir alinhamento
-    if (poly && map) {
-      map.fitBounds(poly.getBounds(), { animate: false, padding: [40, 40] });
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    try {
-      // 2. Prepara o SVG do Leaflet injetando os atributos XML necessários para o Canvas
-      const svgElement = map.getPanes().overlayPane.querySelector("svg");
-      if (svgElement) {
-        svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-      }
-
-      // 3. Usa o html2canvas com a opção de ignorar transformações 3D problemáticas
-      const canvas = await html2canvas(map.getContainer(), {
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        ignoreElements: (el) =>
-          el.classList.contains("leaflet-control-container") ||
-          el.classList.contains("leaflet-bottom") ||
-          el.classList.contains("leaflet-top"),
-        onclone: (clonedDoc) => {
-          // Força a visualização do SVG clonado e ajusta o transform no clone
-          const clonedSvg = clonedDoc.querySelector(
-            ".leaflet-overlay-pane svg",
-          );
-          if (clonedSvg) {
-            clonedSvg.style.visibility = "visible";
-            clonedSvg.style.display = "block";
-          }
-        },
-      });
-
-      // 4. Montar a mensagem do WhatsApp
-      const total = territory.quadras.length;
-      const concluidas = territory.quadras.filter(
-        (q) => q.status === "concluida",
-      ).length;
-      const emAndamento = territory.quadras.filter(
-        (q) => q.status === "andamento",
-      ).length;
-      const pendentes = territory.quadras.filter(
-        (q) => q.status === "pendente",
-      ).length;
-      const pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
-
-      const text = `📍 *RESUMO DO TERRITÓRIO*
-*Nome:* ${territory.name}
-*Progresso:* ${pct}% concluído
-
-📊 *Status das Quadras:*
-• Total: ${total}
-• Concluídas: ${concluidas}
-• Em Andamento: ${emAndamento}
-• Pendentes: ${pendentes}
-
-📅 *Gerado em:* ${new Date().toLocaleDateString("pt-BR")}`;
-
-      // 5. Copiar imagem ou realizar o Download
-      // canvas.toBlob(async (blob) => {
-      //   let imageCopied = false;
-      //   try {
-      //     if (navigator.clipboard && window.ClipboardItem) {
-      //       const item = new ClipboardItem({ "image/png": blob });
-      //       await navigator.clipboard.write([item]);
-      //       imageCopied = true;
-      //     }
-      //   } catch (e) {
-      //     imageCopied = false;
-      //   }
-
-      //   if (!imageCopied) {
-      //     const link = document.createElement("a");
-      //     link.download = `Territorio_${territory.name.replace(/\s+/g, "_")}.png`;
-      //     link.href = canvas.toDataURL("image/png");
-      //     link.click();
-      //     this.uiView.showToast("⬇️ Imagem baixada! Anexe-a no WhatsApp.");
-      //   } else {
-      //     this.uiView.showToast("📋 Imagem com demarcação copiada!");
-      //   }
-
-      //   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-      //   setTimeout(() => {
-      //     window.open(whatsappUrl, "_blank");
-      //   }, 800);
-      // }, "image/png");
-      canvas.toBlob(async (blob) => {
-        const file = new File(
-          [blob],
-          `Territorio_${territory.name.replace(/\s+/g, "_")}.png`,
-          { type: "image/png" },
-        );
-
-        // 1. Tenta usar o compartilhamento nativo do celular (Mobile)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              title: territory.name,
-              text: text,
-              files: [file], // Envia a imagem e o texto juntos nativamente
-            });
-            this.uiView.showToast("✅ Compartilhado com sucesso!");
-            return;
-          } catch (shareError) {
-            // Se o usuário cancelar o menu de compartilhamento, apenas encerra
-            if (shareError.name === "AbortError") return;
-          }
-        }
-
-        // 2. Fallback para Computador / WhatsApp Web (Cópia + Abertura da URL)
-        try {
-          if (navigator.clipboard && window.ClipboardItem) {
-            const item = new ClipboardItem({ "image/png": blob });
-            await navigator.clipboard.write([item]);
-            this.uiView.showToast(
-              "📋 Imagem copiada! No WhatsApp Web, use Ctrl+V.",
-            );
-          }
-        } catch (e) {
-          // Se falhar a cópia, faz o download do arquivo
-          const link = document.createElement("a");
-          link.download = file.name;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-          this.uiView.showToast("⬇️ Imagem baixada! Anexe-a na conversa.");
-        }
-
-        // Abre a janela do WhatsApp com o texto preenchido
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-        setTimeout(() => {
-          window.open(whatsappUrl, "_blank");
-        }, 800);
-      }, "image/png");
-    } catch (err) {
-      console.error("Erro ao gerar imagem:", err);
-      this.uiView.showToast("❌ Falha ao capturar o mapa.");
-    }
+    this.whatsappService.prepareMapForShare(id, territory);
   }
 
   deleteTerritory(id) {
@@ -480,95 +337,24 @@ class AppController {
     this.uiView.toggleModal("modalReportFilter", true);
   }
 
-  printCurrentMapScreen2() {
-    const currentCenter = this.mapView.map.getCenter();
-    const currentZoom = this.mapView.map.getZoom();
-    const currentBearing = this.mapView.map.getBearing
-      ? this.mapView.map.getBearing()
-      : 0;
+  printCurrentMapScreen() {
+    this.uiView.showToast("🖨️ Preparando impressão...");
 
-    const guide = document.getElementById("a4PrintGuide");
-    if (guide) guide.style.display = "none";
+    //delega as tarefas para o serviço de impressão
+    const restoreLayout = this.printService.prepareMapForPrint();
+    if (!restoreLayout) return;
 
-    document.body.classList.remove("printing-report");
-    document.body.classList.add("printing-map");
-    this.mapView.map.invalidateSize();
-    this.mapView.map.setView(currentCenter, currentZoom, { animate: false });
-    if (this.mapView.map.setBearing)
-      this.mapView.map.setBearing(currentBearing);
-
-    setTimeout(() => {
-      this.mapView.map.invalidateSize();
-      window.print();
-      setTimeout(() => {
-        document.body.classList.remove("printing-map");
-        this.mapView.map.invalidateSize();
-        this.mapView.map.setView(currentCenter, currentZoom, {
-          animate: false,
-        });
-        if (this.mapView.map.setBearing)
-          this.mapView.map.setBearing(currentBearing);
-
-        const chk = document.getElementById("togglePrintGuide");
-        if (chk && chk.checked && guide) guide.style.display = "flex";
-      }, 300);
-    }, 400);
-  }
-
-  printCurrentMapScreenBom() {
-    const map = this.mapView.map;
-    const mapContainer = document.getElementById("map");
-
-    if (!map || !mapContainer) return;
-
-    this.uiView.showToast("🖨️ Preparando impressão A4...");
-
-    const isMobile = window.innerWidth <= 768;
-    const originalWidth = mapContainer.style.width;
-    const originalHeight = mapContainer.style.height;
-
-    // No mobile forçamos a proporção A4; no desktop mantemos o tamanho do container ativo
-    if (isMobile) {
-      mapContainer.style.width = "1122px";
-      mapContainer.style.height = "793px";
-    }
-
-    // Notifica o Leaflet sobre o redimensionamento
-    map.invalidateSize();
-
-    // Reenquadra o território adicionando folga superior de segurança [topo, direita, baixo, esquerda]
-    const activeId = this.model.activeTerritoryId;
-    const poly = activeId ? this.mapView.territoryPolygons[activeId] : null;
-
-    if (poly) {
-      map.fitBounds(poly.getBounds(), {
-        animate: false,
-        paddingTopLeft: [50, 80], // Adiciona margem extra no topo para não cortar a linha superior
-        paddingBottomRight: [50, 50],
-      });
-    }
-
-    // Restaura as dimensões originais após a impressão
-    const restoreLayout = () => {
-      if (isMobile) {
-        mapContainer.style.width = originalWidth;
-        mapContainer.style.height = originalHeight;
-      }
-      map.invalidateSize();
-      if (poly) {
-        map.fitBounds(poly.getBounds(), { animate: false, padding: [30, 30] });
-      }
-      window.removeEventListener("afterprint", restoreLayout);
+    const handleAfterPrint = () => {
+      restoreLayout();
+      window.removeEventListener("afterprint", handleAfterPrint);
     };
 
-    window.addEventListener("afterprint", restoreLayout);
+    window.addEventListener("afterprint", handleAfterPrint);
 
     setTimeout(() => {
       window.print();
     }, 600);
-  }
-
-  printCurrentMapScreen() {
+    /*
     const map = this.mapView.map;
     const mapContainer = document.getElementById("map");
 
@@ -609,6 +395,7 @@ class AppController {
     setTimeout(() => {
       window.print();
     }, 600);
+    */
   }
 
   generateAndPrintReport() {
