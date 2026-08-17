@@ -600,10 +600,10 @@ class AppController {
           this.showAllTerritories,
         );
         // 1. Calcula o enquadramento com margens bem justas para aproximar a visão
-        map.fitBounds(poly.getBounds(), {
-          animate: false,
-          padding: [10, 10],
-        });
+        // map.fitBounds(poly.getBounds(), {
+        //   animate: false,
+        //   padding: [10, 10],
+        // });
 
         // 2. Aumenta 1 nível de zoom em relação ao cálculo automático
         // map.setZoom(map.getZoom() + 0, { animate: false });
