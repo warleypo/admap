@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const mapView = new MapView("map");
   const uiView = new UIView();
   const printService = new PrintService(mapView, model);
+  const reportService = new ReportService(model);
   const whatsappService = new WhatsappService(uiView, mapView);
   const app = new AppController(
     model,
@@ -10,5 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
     uiView,
     printService,
     whatsappService,
+    reportService,
   );
 });

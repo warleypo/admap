@@ -16,6 +16,30 @@ body {
   overflow: hidden;
 }
 
+hr {
+  margin: 1rem 0;
+}
+
+#assignmentHistoryList ul {
+  display: flex;
+  flex-direction: column;
+}
+
+#assignmentHistoryList li {
+  display: flex;
+  border-bottom: 1px solid #94a3b866;
+  padding: 4px 0;
+}
+#assignmentHistoryList li strong,
+#assignmentHistoryList li p {
+  flex-grow: 1;
+  flex-basis: content;
+  font-size: smaller;
+}
+#assignmentHistoryList li p {
+  text-align: right;
+}
+
 #sidebar {
   width: var(--sidebar-width);
   background: #f8f9fa;
@@ -215,6 +239,12 @@ body {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 15px;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  padding: 40px 16px;
+  border-radius: 8px;
 }
 
 .btn {

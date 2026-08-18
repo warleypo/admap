@@ -109,6 +109,9 @@
           <input type="color" id="territoryColorInput" value="#3b82f6" />
         </div>
         <div class="modal-actions">
+          <button type="button" class="btn btn-warning" id="btnAssignTerritory">
+            📋 Designar
+          </button>
           <button class="btn btn-secondary" id="btnCancelTerritoryModal">
             Cancelar
           </button>
@@ -219,6 +222,77 @@
       </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- Modal 5: Formulário de Designação       -->
+    <!-- ========================================== -->
+    <div id="assignmentModal" class="modal-overlay" style="display: none">
+      <div
+        class="modal-content"
+        style="max-width: 600px; max-height: 90vh; overflow-y: auto"
+      >
+        <div class="modal-header">
+          <h3>📋 Designação de Território</h3>
+        </div>
+
+        <form id="assignmentForm" onsubmit="app.handleAssignmentSubmit(event)">
+          <!-- <input type="hidden" name="territoryId" id="inputAssignTerritoryId" /> -->
+          <div class="form-group">
+            <label for="assigneeName">Nome do Publicador / Designado:</label>
+            <input
+              type="text"
+              id="assigneeName"
+              class="form-control"
+              placeholder="Ex: João Silva"
+              required
+            />
+          </div>
+
+          <div class="form-group" style="margin-top: 10px">
+            <label for="assignmentDate">Data da Designação:</label>
+            <input
+              type="date"
+              id="assignmentDate"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group" style="margin-top: 10px">
+            <label for="completionDate"
+              >Data da Conclusão (Se concluído):</label
+            >
+            <input type="date" id="completionDate" class="form-control" />
+          </div>
+
+          <div
+            class="modal-actions"
+            style="margin-top: 20px; text-align: right"
+          >
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="btnCloseAssignTerritory"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-success"
+              id="btnSaveAssignTerritory"
+            >
+              Salvar Designação
+            </button>
+          </div>
+        </form>
+
+        <hr />
+        <!-- Lista de Histórico Agrupado -->
+        <div id="assignmentHistoryList" style="margin-bottom: 20px">
+          <!-- Preenchido dinamicamente via JS -->
+        </div>
+      </div>
+    </div>
+
     <!-- Scripts MVC da Aplicação -->
     <script src="js/models/TerritoryModel.js"></script>
     <script src="js/views/MapView.js"></script>
@@ -226,6 +300,7 @@
     <script src="js/controllers/AppController.js"></script>
     <script src="js/services/PrintService.js"></script>
     <script src="js/services/WhatsappService.js"></script>
+    <script src="js/services/ReportService.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

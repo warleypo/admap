@@ -1,10 +1,18 @@
 class AppController {
-  constructor(model, mapView, uiView, printService, whatsappService) {
+  constructor(
+    model,
+    mapView,
+    uiView,
+    printService,
+    whatsappService,
+    reportService,
+  ) {
     this.model = model;
     this.mapView = mapView;
     this.uiView = uiView;
     this.printService = printService;
     this.whatsappService = whatsappService;
+    this.reportService = reportService;
 
     this.tempPolygonLayer = null;
     this.editingTerritoryId = null;
@@ -26,6 +34,12 @@ class AppController {
       this.openReportFilterModal();
     document.getElementById("btnPrintMap").onclick = () =>
       this.printCurrentMapScreen();
+    document.getElementById("btnAssignTerritory").onclick = () =>
+      this.openAssignmentModal();
+    document.getElementById("btnCloseAssignTerritory").onclick = () =>
+      this.closeAssignmentModal();
+    document.getElementById("btnSaveAssignTerritory").onclick = (e) =>
+      this.handleAssignmentSubmit(e);
 
     document.getElementById("togglePrintGuide").onchange = (e) => {
       const guide = document.getElementById("a4PrintGuide");
@@ -327,7 +341,119 @@ class AppController {
     this.renderAll();
   }
 
+  /**
+   * Abre a modal de designação preenchendo a data atual por padrão
+   */
+  openAssignmentModal() {
+    const activeId =
+      this.model.activeTerritoryId || this.model.selectedTerritoryId;
+
+    if (!activeId) {
+      this.uiView.showToast("⚠️ Selecione um território antes de designar.");
+      return;
+    }
+
+    const territory = this.model.appData.find((t) => t.id === activeId);
+    if (!territory.history) territory.history = [];
+
+    // 1. Renderiza o histórico por Ano de Serviço
+    this.model.renderAssignmentHistory(territory.history);
+
+    const currentAssign = this.model.getCurrentAssign(territory.id);
+    // Preenche os campos se o território já possuir dados de designação
+    document.getElementById("assigneeName").value =
+      currentAssign?.assigneeName || "";
+    document.getElementById("assignmentDate").value =
+      currentAssign?.assignmentDate || "";
+    document.getElementById("completionDate").value = "";
+
+    // Exibe a modal
+    const modal = document.getElementById("assignmentModal");
+    if (modal) modal.style.display = "flex";
+  }
+
+  /**
+   * Fecha a modal de designação
+   */
+  closeAssignmentModal() {
+    const modal = document.getElementById("assignmentModal");
+    if (modal) modal.style.display = "none";
+  }
+
+  /**
+   * Processa o envio do formulário de designação
+   */
+  handleAssignmentSubmit(event) {
+    event.preventDefault();
+
+    const activeId = this.model.selectedTerritoryId;
+    const territory = this.model.appData.find((t) => t.id === activeId);
+
+    if (!territory) {
+      this.uiView.showToast(
+        `⚠️ Território não localizado, selecione e tente novamente!`,
+      );
+      return;
+    }
+
+    const newRecord = {
+      assigneeName: document.getElementById("assigneeName").value,
+      assignmentDate: document.getElementById("assignmentDate").value,
+      completionDate: document.getElementById("completionDate").value || null,
+    };
+
+    const currentAssign = this.model.getCurrentAssign(activeId);
+    if (currentAssign) {
+      currentAssign.assigneeName = newRecord.assigneeName;
+      currentAssign.assignmentDate = newRecord.assignmentDate;
+      currentAssign.completionDate = newRecord.completionDate;
+    } else {
+      if (!territory.history) territory.history = [];
+      territory.history.push(newRecord);
+    }
+
+    territory.assignedTo = newRecord.assigneeName;
+    territory.status = newRecord.completionDate ? "Concluído" : "Designado";
+
+    this.model.save();
+
+    this.uiView.showToast(
+      `✅ Designação registrada para ${newRecord.assigneeName}!`,
+    );
+    this.openAssignmentModal(); //reabre para atualizar historico
+
+    // if (this.mapView.updateTerritoryStyle) {
+    //   this.mapView.updateTerritoryStyle(activeId);
+    // }
+
+    this.closeAssignmentModal();
+  }
+
   openReportFilterModal() {
+    console.log(this.reportService.getOverallProgressReport());
+    // impressão de relatorio
+    const reportHTML = this.reportService.generatePrintableSummaryHTML();
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Relatório de Territórios</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #f4f4f4; }
+          </style>
+        </head>
+        <body>
+          ${reportHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+    // fim impressão
+
     const select = document.getElementById("reportCampaignSelect");
     select.innerHTML =
       '<option value="normal">Trabalho Contínuo / Normal</option>';

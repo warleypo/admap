@@ -162,4 +162,87 @@ class TerritoryModel {
 
     this.save();
   }
+
+  // designa território
+  assignTerritory(territoryId, data) {
+    const territory = (this.model.appData || []).find(
+      (t) => t.id === territoryId,
+    );
+
+    if (!territory.history) territory.history = [];
+
+    if (territory) {
+      territory.assignedTo = data.assigneeName;
+      territory.assignmentDate = data.assignmentDate;
+      territory.completionDate = data.completionDate;
+      territory.status = data.completionDate ? "Concluído" : "Designado";
+      return true;
+    }
+    return false;
+  }
+
+  getCurrentAssign(territoryId) {
+    const territory = this.appData.find((t) => t.id === territoryId);
+    return territory.history.find((h) => h.completionDate === null);
+  }
+
+  /**
+   * Retorna a string do Ano de Serviço (Ex: "2025/2026") com base em uma data.
+   * O ano de serviço vai de Setembro de YYYY até Agosto de YYYY+1.
+   */
+  getServiceYear(dateString) {
+    if (!dateString) return "Sem data";
+    const date = new Date(dateString);
+    const month = date.getMonth(); // 0 = Jan, 8 = Set, 11 = Dez
+    const year = date.getFullYear();
+
+    if (month >= 8) {
+      // Setembro em diante
+      return `Ano de Serviço ${year}/${year + 1}`;
+    } else {
+      // Janeiro a Agosto
+      return `Ano de Serviço ${year - 1}/${year}`;
+    }
+  }
+
+  /**
+   * Agrupa o histórico de designações de um território por Ano de Serviço.
+   */
+  getGroupedHistory(history = []) {
+    return history.reduce((acc, item) => {
+      const sy = this.getServiceYear(item.assignmentDate);
+      if (!acc[sy]) acc[sy] = [];
+      acc[sy].push(item);
+      return acc;
+    }, {});
+  }
+
+  renderAssignmentHistory(history) {
+    const container = document.getElementById("assignmentHistoryList");
+    const grouped = this.getGroupedHistory(history.reverse());
+
+    if (Object.keys(grouped).length === 0) {
+      container.innerHTML =
+        "<p><em>Nenhuma designação registrada no histórico.</em></p>";
+      return;
+    }
+
+    let html = "";
+    for (const [serviceYear, records] of Object.entries(grouped)) {
+      html += `<h5 style="margin-top: 15px; color: #0284c7;">${serviceYear}</h5><ul style="padding-left: 4px;">`;
+      records.forEach((rec) => {
+        const status = rec.completionDate
+          ? `<span style="color: #048104">Fim em ${rec.completionDate}</span>`
+          : "<span style='color: #d46407'>Em andamento</span>";
+        html += `
+          <li>
+            <strong>${rec.assigneeName}</strong><p>Início: ${rec.assignmentDate} (${status})</p>
+          </li>
+        `;
+      });
+      html += "</ul>";
+    }
+
+    container.innerHTML = html;
+  }
 }
