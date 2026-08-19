@@ -142,4 +142,70 @@ class ReportService {
       </div>
     `;
   }
+
+  generateS13() {
+    let s13 = `
+    <div style="font-family: monospace; font-weight: bold; font-size: 16pt; text-align: center; margin-bottom: 10px;">
+    Registro de Designações de Territórios (S13)</div>
+    <div class="s13-container" style="font-family: monospace; font-size: 12pt; width: 100%; display: flex; flex-direction: column;">`;
+
+    const records = {};
+
+    this.model.appData.map((territory) => {
+      const gHistory = this.model.getGroupedHistory(territory.history || []);
+      Object.keys(gHistory).map((ano) => {
+        if (!records[ano]) records[ano] = [];
+        console.log("ghistory", gHistory[ano]);
+        records[ano] = records[ano]?.concat(
+          gHistory[ano].map((h) => {
+            h["territoryName"] = territory.name;
+            return h;
+          }),
+        );
+      });
+    });
+
+    console.log("records", records);
+
+    Object.keys(records).map((k) => {
+      s13 += `
+      <div style="font-weight: bold; margin-top: 20px; margin-bottom: 10px; width: 100%;">Ano de Serviço: ${k}</div>\n`;
+
+      let terNumber = 1;
+      let currentTerritory = "";
+      records[k].map((h) => {
+        if (currentTerritory !== "" && currentTerritory !== h.territoryName) {
+          s13 += `</div>`;
+        }
+        if (currentTerritory !== h.territoryName) {
+          s13 += `
+          \t<div style="font-weight: bold; margin-top: 10px; width: 100%; border: 1px solid #ccc; padding: 4px;">${h.territoryName}</div>\n
+          \t<div style="display: flex; flex-direction: row; justify-content: start; border-bottom: 1px solid #ccc; padding: 0;">\n
+          \t\t<div style="font-weight: bold; text-align: center; padding: 4px; background-color: #ccc; display: flex; align-items: center;">${terNumber++}</div>\n`;
+        }
+        console.log("h", h);
+
+        s13 += `
+          <div  style="display: flex; flex-direction: column; justify-content: space-between; border-left: 1px solid #ccc; padding: 0; border-right: 1px solid #ccc; padding: 0;">
+            <div style="border-bottom: 1px solid #ccc; padding: 0; width: 100%; text-align: center;">
+              ${h.assigneeName || "Sem designação"}
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <div style="font-weight: bold; flex-grow: 1; text-align: center; padding: 4px; background-color: #f0f0f0;">Designação</div>
+              <div style="font-weight: bold; flex-grow: 1; text-align: center; padding: 4px; background-color: #f0f0f0;">Conclusão</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 10px;">
+              <div style="padding: 4px; text-align: center;">${ConvertDate.convertStringDateToBR(h.assignmentDate) || ""}</div>
+              <div style="padding: 4px; text-align: center;">${ConvertDate.convertStringDateToBR(h.completionDate) || ""}</div>
+            </div>
+          </div>
+        `;
+
+        currentTerritory = h.territoryName;
+      });
+      s13 += `</div>`;
+    });
+
+    return s13;
+  }
 }

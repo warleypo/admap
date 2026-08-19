@@ -198,10 +198,10 @@ class TerritoryModel {
 
     if (month >= 8) {
       // Setembro em diante
-      return `Ano de Serviço ${year}/${year + 1}`;
+      return `${year}-${year + 1}`;
     } else {
       // Janeiro a Agosto
-      return `Ano de Serviço ${year - 1}/${year}`;
+      return `${year - 1}-${year}`;
     }
   }
 
@@ -219,7 +219,7 @@ class TerritoryModel {
 
   renderAssignmentHistory(history) {
     const container = document.getElementById("assignmentHistoryList");
-    const grouped = this.getGroupedHistory(history.reverse());
+    const grouped = this.getGroupedHistory([...history].reverse());
 
     if (Object.keys(grouped).length === 0) {
       container.innerHTML =
@@ -229,14 +229,14 @@ class TerritoryModel {
 
     let html = "";
     for (const [serviceYear, records] of Object.entries(grouped)) {
-      html += `<h5 style="margin-top: 15px; color: #0284c7;">${serviceYear}</h5><ul style="padding-left: 4px;">`;
+      html += `<h5 style="margin-top: 15px; color: #0284c7;">Ano de serviço: ${serviceYear}</h5><ul style="padding-left: 4px;">`;
       records.forEach((rec) => {
         const status = rec.completionDate
           ? `<span style="color: #048104">Fim em ${rec.completionDate}</span>`
           : "<span style='color: #d46407'>Em andamento</span>";
         html += `
           <li>
-            <strong>${rec.assigneeName}</strong><p>Início: ${rec.assignmentDate} (${status})</p>
+            <strong>${ConvertDate.convertStringDateToBR(rec.assigneeName)}</strong><p>Início: ${ConvertDate.convertStringDateToBR(rec.assignmentDate)} (${status})</p>
           </li>
         `;
       });

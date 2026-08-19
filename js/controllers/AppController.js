@@ -345,6 +345,12 @@ class AppController {
    * Abre a modal de designação preenchendo a data atual por padrão
    */
   openAssignmentModal() {
+    const print = this.reportService.generateS13();
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(print);
+    printWindow.document.close();
+    printWindow.print();
+
     const activeId =
       this.model.activeTerritoryId || this.model.selectedTerritoryId;
 
