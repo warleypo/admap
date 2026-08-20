@@ -30,16 +30,27 @@ class AppController {
       this.startDrawingTerritory();
     document.getElementById("btnOpenCampaign").onclick = () =>
       this.openCampaignModal();
-    document.getElementById("btnOpenReport").onclick = () =>
-      this.openReportFilterModal();
+    document.getElementById("btnOpenReport").onclick = (e) =>
+      this.openReportTypeModal(e);
     document.getElementById("btnPrintMap").onclick = () =>
       this.printCurrentMapScreen();
     document.getElementById("btnAssignTerritory").onclick = () =>
       this.openAssignmentModal();
     document.getElementById("btnCloseAssignTerritory").onclick = () =>
       this.closeAssignmentModal();
+    document.getElementById("btnCloseCampaignModal").onclick = () =>
+      (document.getElementById("modalCampaign").style.display = "none");
     document.getElementById("btnSaveAssignTerritory").onclick = (e) =>
       this.handleAssignmentSubmit(e);
+    // Ações de Relatórios
+    document.getElementById("btnGenerateContinuousReport").onclick = () =>
+      this.generateReport("continuous");
+    document.getElementById("btnGenerateS13Report").onclick = () =>
+      this.generateReport("s13");
+    document.getElementById("btnCloseReportTypeModal").onclick = () =>
+      this.closeReportTypeModal();
+    document.getElementById("btnGenerateReport").onclick = () =>
+      this.generateAndPrintReport();
 
     document.getElementById("togglePrintGuide").onchange = (e) => {
       const guide = document.getElementById("a4PrintGuide");
@@ -66,8 +77,8 @@ class AppController {
       this.deleteCurrentQuadra();
     document.getElementById("btnCreateCampaign").onclick = () =>
       this.createNewCampaign();
-    document.getElementById("btnGenerateReport").onclick = () =>
-      this.generateAndPrintReport();
+    // document.getElementById("btnGenerateReport").onclick = () =>
+    //   this.generateAndPrintReport();
   }
 
   renderAll() {
@@ -105,7 +116,11 @@ class AppController {
         onAddQuadra: (id) => this.enableAddQuadraMode(id),
         onEditNodes: (id) => this.editTerritoryNodes(id),
         onSaveShape: (id) => this.saveTerritoryShape(id),
-        onShareWhatsApp: (id) => this.shareTerritoryWhatsApp(id),
+        onShareWhatsApp: (id) => {
+          const territory = this.model.appData.find((t) => t.id === id);
+          this.selectTerritory(id); // Seleciona o território antes de compartilhar
+          this.whatsappService.prepareMapForShare(territory);
+        },
         onDelete: (id) => this.deleteTerritory(id),
       },
     );
@@ -225,11 +240,6 @@ class AppController {
     }
   }
 
-  async shareTerritoryWhatsApp(id) {
-    const territory = this.model.appData.find((t) => t.id === id);
-    this.whatsappService.prepareMapForShare(id, territory);
-  }
-
   deleteTerritory(id) {
     const territory = this.model.appData.find((t) => t.id === id);
     if (!territory) return;
@@ -315,6 +325,36 @@ class AppController {
   }
 
   openCampaignModal() {
+    const currentCampaign = this.model.campaignData.find(
+      (c) => c.status === "em_andamento",
+    );
+    const endDateInput = document.getElementById("campaignEndDate");
+    const startDateInput = document.getElementById("campaignStartDate");
+    const nameInput = document.getElementById("campaignNameInput");
+    const btnCreate = document.getElementById("btnCreateCampaign");
+
+    if (currentCampaign) {
+      nameInput.value = currentCampaign.name;
+      startDateInput.value = currentCampaign.startDate;
+      endDateInput.value = new Date().toISOString().split("T")[0];
+
+      nameInput.disabled = true;
+      startDateInput.disabled = true;
+      endDateInput.disabled = false;
+      btnCreate.disabled = true;
+      btnCreate.style.display = "none";
+    } else {
+      nameInput.value = "";
+      startDateInput.value = new Date().toISOString().split("T")[0];
+      endDateInput.value = "";
+
+      nameInput.disabled = false;
+      startDateInput.disabled = false;
+      endDateInput.disabled = true;
+      btnCreate.disabled = false;
+      btnCreate.style.display = "block";
+    }
+
     this.uiView.renderCampaignList(this.model.campaignData, (id) =>
       this.closeCampaign(id),
     );
@@ -322,22 +362,40 @@ class AppController {
   }
 
   createNewCampaign() {
+    const currentCampaign = this.model.campaignData.find(
+      (c) => c.status === "em_andamento",
+    );
+    if (currentCampaign) {
+      this.uiView.showToast(
+        `⚠️ A campanha "${currentCampaign.name}" ainda está em andamento. Encerre-a antes de criar uma nova.`,
+      );
+      return;
+    }
     const name = document.getElementById("campaignNameInput").value.trim();
     if (!name) return this.uiView.showToast("Insira um nome para a campanha.");
+    const startDate = document.getElementById("campaignStartDate").value;
+    if (!startDate) startDate = new Date();
 
-    this.model.createCampaign(name);
+    this.model.createCampaign(name, startDate);
     document.getElementById("campaignNameInput").value = "";
-    this.uiView.renderCampaignList(this.model.campaignData, (id) =>
-      this.closeCampaign(id),
-    );
+    document.getElementById("campaignStartDate").value = "";
+    document.getElementById("campaignEndDate").value = "";
+    this.openCampaignModal(); // Reabre para atualizar a lista
+    // this.uiView.renderCampaignList(this.model.campaignData, (id) =>
+    //   this.closeCampaign(id),
+    // );
     this.renderAll();
   }
 
   closeCampaign(campaignId) {
-    this.model.closeCampaign(campaignId);
-    this.uiView.renderCampaignList(this.model.campaignData, (id) =>
-      this.closeCampaign(id),
-    );
+    const endDate = document.getElementById("campaignEndDate").value;
+    if (!endDate) endDate = new Date();
+
+    this.model.closeCampaign(campaignId, endDate);
+    this.openCampaignModal(); // Reabre para atualizar a lista
+    // this.uiView.renderCampaignList(this.model.campaignData, (id) =>
+    //   this.closeCampaign(id),
+    // );
     this.renderAll();
   }
 
@@ -436,30 +494,6 @@ class AppController {
   }
 
   openReportFilterModal() {
-    console.log(this.reportService.getOverallProgressReport());
-    // impressão de relatorio
-    const reportHTML = this.reportService.generatePrintableSummaryHTML();
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Relatório de Territórios</title>
-          <style>
-            body { font-family: sans-serif; padding: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            th { background-color: #f4f4f4; }
-          </style>
-        </head>
-        <body>
-          ${reportHTML}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-    // fim impressão
-
     const select = document.getElementById("reportCampaignSelect");
     select.innerHTML =
       '<option value="normal">Trabalho Contínuo / Normal</option>';
@@ -486,48 +520,6 @@ class AppController {
     setTimeout(() => {
       window.print();
     }, 600);
-    /*
-    const map = this.mapView.map;
-    const mapContainer = document.getElementById("map");
-
-    if (!map || !mapContainer) return;
-
-    this.uiView.showToast("🖨️ Preparando impressão A4...");
-
-    const isMobile = window.innerWidth <= 768;
-    const originalWidth = mapContainer.style.width;
-    const originalHeight = mapContainer.style.height;
-
-    if (isMobile) {
-      mapContainer.style.width = "1122px";
-      mapContainer.style.height = "793px";
-    }
-
-    map.invalidateSize();
-
-    const activeId = !this.showAllTerritories
-      ? this.model.selectedTerritoryId
-      : null;
-    const poly = activeId ? this.mapView.territoryPolygons[activeId] : null;
-
-    const restoreLayout = () => {
-      if (isMobile) {
-        mapContainer.style.width = originalWidth;
-        mapContainer.style.height = originalHeight;
-      }
-      map.invalidateSize();
-      if (poly) {
-        map.fitBounds(poly.getBounds(), { animate: false, padding: [30, 30] });
-      }
-      window.removeEventListener("afterprint", restoreLayout);
-    };
-
-    window.addEventListener("afterprint", restoreLayout);
-
-    setTimeout(() => {
-      window.print();
-    }, 600);
-    */
   }
 
   generateAndPrintReport() {
@@ -536,6 +528,7 @@ class AppController {
     ).value;
     let reportItems = [];
     let reportTitle = "";
+    let htmlContent = "";
 
     if (selectedOption === "normal") {
       reportTitle = "Trabalho Contínuo / Normal";
@@ -613,7 +606,7 @@ class AppController {
       tableRows = `<tr><td colspan="5" style="text-align:center;">Nenhum registro encontrado.</td></tr>`;
     }
 
-    document.getElementById("printReportArea").innerHTML = `
+    htmlContent = `
       <div class="report-header">
         <h1>Relatório - ${reportTitle}</h1>
         <p>Janaúba - MG | Emitido em: ${new Date().toLocaleDateString("pt-BR")}</p>
@@ -633,11 +626,85 @@ class AppController {
     `;
 
     this.uiView.toggleModal("modalReportFilter", false);
-    document.body.classList.remove("printing-map");
-    document.body.classList.add("printing-report");
-    window.print();
+
+    this.openPrintWindow(htmlContent);
+
     setTimeout(() => {
       document.body.classList.remove("printing-report");
     }, 500);
+  }
+
+  // Reports
+  /**
+   * Abre a modal de escolha de relatórios
+   */
+  openReportTypeModal(event) {
+    const modal = document.getElementById("reportTypeModal");
+    if (modal) modal.style.display = "flex";
+  }
+
+  /**
+   * Fecha a modal de escolha de relatórios
+   */
+  closeReportTypeModal() {
+    const modal = document.getElementById("reportTypeModal");
+    if (modal) modal.style.display = "none";
+  }
+
+  /**
+   * Dispara a geração e abertura da janela de impressão conforme o tipo escolhido
+   */
+  generateReport(type) {
+    this.closeReportTypeModal();
+
+    let htmlContent = "";
+
+    switch (type) {
+      case "continuous":
+        console.log("Gerando relatório de Trabalho Contínuo / Normal...");
+        this.openReportFilterModal();
+        break;
+      case "campaign":
+        console.log("Gerando relatório de Campanha Especial...");
+        break;
+      case "s13":
+        htmlContent = this.reportService.generateS13();
+        this.openPrintWindow(htmlContent);
+        break;
+      default:
+        this.uiView.showToast("⚠️ Tipo de relatório inválido.");
+        return;
+    }
+
+    // this.openPrintWindow(htmlContent);
+  }
+
+  /**
+   * Utilitário para renderizar o HTML em uma nova janela de impressão
+   */
+  openPrintWindow(contentHTML) {
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Relatório</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
+            th, td { border: 1px solid #999; padding: 8px; text-align: left; font-size: 14px; }
+            th { background-color: #f2f2f2; }
+            h2, h3 { margin-bottom: 5px; }
+          </style>
+        </head>
+        <body>
+          ${contentHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.print();
+    }, 300);
   }
 }

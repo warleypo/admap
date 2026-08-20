@@ -104,7 +104,7 @@ class TerritoryModel {
     }
   }
 
-  createCampaign(name) {
+  createCampaign(name, startDate) {
     const active = this.campaignData.find((c) => c.status === "em_andamento");
     if (active) this.closeCampaign(active.id);
 
@@ -112,7 +112,7 @@ class TerritoryModel {
     const newCampaign = {
       id: campaignId,
       name,
-      startDate: new Date().toISOString().split("T")[0],
+      startDate: new Date(startDate).toISOString().split("T")[0],
       endDate: "",
       status: "em_andamento",
     };
@@ -134,11 +134,11 @@ class TerritoryModel {
     this.save();
   }
 
-  closeCampaign(campaignId) {
+  closeCampaign(campaignId, endDate) {
     const cmp = this.campaignData.find((c) => c.id === campaignId);
     if (!cmp) return;
     cmp.status = "concluida";
-    cmp.endDate = new Date().toISOString().split("T")[0];
+    cmp.endDate = new Date(endDate).toISOString().split("T")[0];
 
     this.appData.forEach((t) => {
       t.quadras.forEach((q) => {

@@ -5,12 +5,12 @@ class WhatsappService {
     this.baseUrl = "https://api.whatsapp.com/send";
   }
 
-  async prepareMapForShare(id, territory) {
-    console.log("Terrr", territory);
+  async prepareMapForShare(territory) {
+    // console.log("Terrr", territory);
     this.uiView.showToast("📸 Gerando imagem do território...");
 
     const map = this.mapView.map;
-    const poly = this.mapView.territoryPolygons[id];
+    const poly = this.mapView.territoryPolygons[territory.id];
 
     // 1. Centraliza no território sem animação para garantir alinhamento
     if (poly && map) {

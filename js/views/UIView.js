@@ -126,7 +126,7 @@ class UIView {
         '<p style="font-size:0.8rem; color:#64748b;">Nenhuma campanha criada.</p>';
       return;
     }
-    campaignData.forEach((cmp) => {
+    [...campaignData].reverse().map((cmp) => {
       const item = document.createElement("div");
       item.className = "campaign-item";
       item.innerHTML = `
