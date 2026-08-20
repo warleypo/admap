@@ -138,8 +138,8 @@ class UIView {
       item.innerHTML = `
         <header>
           <span>${cmp.name}</span>
-          <span style="font-size:0.75rem; color:${cmp.status === "em_andamento" ? "#2563eb" : "#166534"}">
-            ${cmp.status === "em_andamento" ? "● Em Andamento" : "✓ Concluída"}
+          <span style="font-size:0.75rem; color:${cmp.status === "andamento" ? "#2563eb" : "#166534"}">
+            ${cmp.status === "andamento" ? "● Em Andamento" : "✓ Concluída"}
           </span>
         </header>
         <div style="font-size:0.75rem; color:#64748b;">
@@ -157,7 +157,7 @@ class UIView {
         }
         
         ${
-          cmp.status === "em_andamento"
+          cmp.status === "andamento"
             ? `<button class="btn btn-danger btn-sm" style="margin-top:8px;" id="btn-close-cmp-${cmp.id}">
               Encerrar Campanha e Voltar ao Trabalho Normal
              </button>`
@@ -166,7 +166,7 @@ class UIView {
       `;
       listArea.appendChild(item);
 
-      if (cmp.status === "em_andamento") {
+      if (cmp.status === "andamento") {
         document.getElementById(`btn-close-cmp-${cmp.id}`).onclick = () =>
           onCloseCampaign(cmp.id);
       }

@@ -145,7 +145,7 @@ class ReportService {
 
   generateS13() {
     let s13 = `
-    <div style="font-family: monospace; font-weight: bold; font-size: 16pt; text-align: center; margin-bottom: 10px;">
+    <div style="font-weight: bold; font-size: 16pt; text-align: center; margin-bottom: 10px;">
     Registro de Designações de Territórios (S13)</div>
     <div class="s13-container" style="font-family: monospace; font-size: 12pt; width: 100%; display: flex; flex-direction: column;">`;
 
@@ -190,9 +190,9 @@ class ReportService {
             <div style="border-bottom: 1px solid #ccc; padding: 0; width: 100%; text-align: center;">
               ${h.assigneeName || "Sem designação"}
             </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div style="font-weight: bold; flex-grow: 1; text-align: center; padding: 4px; background-color: #f0f0f0;">Designação</div>
-              <div style="font-weight: bold; flex-grow: 1; text-align: center; padding: 4px; background-color: #f0f0f0;">Conclusão</div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; gap: 10px; width: 100%; background-color: #e0e0e0;">
+              <div style="font-weight: bold; flex-grow: 1; text-align: center; padding: 4px; ">Designação</div>
+              <div style="font-weight: bold; flex-grow: 1; text-align: center; padding: 4px; ">Conclusão</div>
             </div>
             <div style="display: flex; justify-content: space-between; gap: 10px;">
               <div style="padding: 4px; text-align: center;">${ConvertDate.convertStringDateToBR(h.assignmentDate) || ""}</div>

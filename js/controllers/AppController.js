@@ -6,6 +6,7 @@ class AppController {
     printService,
     whatsappService,
     reportService,
+    campaignService,
   ) {
     this.model = model;
     this.mapView = mapView;
@@ -13,6 +14,7 @@ class AppController {
     this.printService = printService;
     this.whatsappService = whatsappService;
     this.reportService = reportService;
+    this.campaignService = campaignService;
 
     this.tempPolygonLayer = null;
     this.editingTerritoryId = null;
@@ -53,6 +55,12 @@ class AppController {
       this.closeReportTypeModal();
     document.getElementById("btnGenerateReport").onclick = () =>
       this.generateAndPrintReport();
+
+    document.getElementById("btnCloseServiceYear").onclick = () =>
+      this.campaignService.closeServiceYear(
+        this.openCampaignModal.bind(this),
+        "2026-2027",
+      );
 
     document.getElementById("togglePrintGuide").onchange = (e) => {
       const guide = document.getElementById("a4PrintGuide");
@@ -328,7 +336,7 @@ class AppController {
 
   openCampaignModal() {
     const currentCampaign = this.model.campaignData.find(
-      (c) => c.status === "em_andamento",
+      (c) => c.status === "andamento",
     );
     const endDateInput = document.getElementById("campaignEndDate");
     const startDateInput = document.getElementById("campaignStartDate");
@@ -368,7 +376,7 @@ class AppController {
 
   createNewCampaign() {
     const currentCampaign = this.model.campaignData.find(
-      (c) => c.status === "em_andamento",
+      (c) => c.status === "andamento",
     );
     if (currentCampaign) {
       this.uiView.showToast(
@@ -420,11 +428,11 @@ class AppController {
    * Abre a modal de designação preenchendo a data atual por padrão
    */
   openAssignmentModal() {
-    const print = this.reportService.generateS13();
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(print);
-    printWindow.document.close();
-    printWindow.print();
+    // const print = this.reportService.generateS13();
+    // const printWindow = window.open("", "_blank");
+    // printWindow.document.write(print);
+    // printWindow.document.close();
+    // printWindow.print();
 
     const activeId =
       this.model.activeTerritoryId || this.model.selectedTerritoryId;
@@ -517,7 +525,7 @@ class AppController {
     this.model.campaignData.map((c) => {
       if (c.status === "arquivada" && !arquivadas) return; // Não renderiza campanhas arquivadas
       if (c.status !== "arquivada" && arquivadas) return; // Não renderiza campanhas não arquivadas
-      select.innerHTML += `<option value="${c.id}">Campanha: ${c.name} (${c.status === "em_andamento" ? "Ativa" : c.status === "concluida" ? "Encerrada" : "Arquivada"})</option>`;
+      select.innerHTML += `<option value="${c.id}">Campanha: ${c.name} (${c.status === "andamento" ? "Ativa" : c.status === "concluida" ? "Encerrada" : "Arquivada"})</option>`;
     });
     this.uiView.toggleModal("modalReportFilter", true);
   }
@@ -567,7 +575,7 @@ class AppController {
       const cmp = this.model.campaignData.find((c) => c.id === selectedOption);
       if (!cmp) return;
       reportTitle = `Campanha: ${cmp.name}`;
-      if (cmp.status === "em_andamento") {
+      if (cmp.status === "andamento") {
         this.model.appData.forEach((t) => {
           t.quadras.forEach((q) => {
             reportItems.push({
@@ -613,7 +621,7 @@ class AppController {
       <tr>
         <td><strong>${q.territoryName}</strong></td>
         <td>Quadra ${q.number}</td>
-        <td><span class="badge badge-${q.status}">${q.status}</span></td>
+        <td><span class="badge badge-${q.status}">${q.status === "andamento" ? "Incompleto" : q.status}</span></td>
         <td>${formatDate(q.startDate)}</td>
         <td>${formatDate(q.endDate)}</td>
       </tr>
