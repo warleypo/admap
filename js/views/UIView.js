@@ -118,7 +118,12 @@ class UIView {
     });
   }
 
-  renderCampaignList(campaignData, onCloseCampaign) {
+  renderCampaignList(
+    campaignData,
+    onCloseCampaign,
+    onArchiveCampaign,
+    onReopenCampaign,
+  ) {
     const listArea = document.getElementById("campaignListArea");
     listArea.innerHTML = "";
     if (campaignData.length === 0) {
@@ -127,6 +132,7 @@ class UIView {
       return;
     }
     [...campaignData].reverse().map((cmp) => {
+      if (cmp.status === "arquivada") return; // Não renderiza campanhas arquivadas
       const item = document.createElement("div");
       item.className = "campaign-item";
       item.innerHTML = `
@@ -140,6 +146,17 @@ class UIView {
           Início: ${cmp.startDate} ${cmp.endDate ? "| Fim: " + cmp.endDate : ""}
         </div>
         ${
+          cmp.status === "concluida"
+            ? `<button class="btn btn-warning btn-sm" style="margin-top:8px;" id="btn-archive-cmp-${cmp.id}">
+                Arquivar Campanha
+              </button>
+              <button class="btn btn-primary btn-sm" style="margin-top:8px;" id="btn-reopen-cmp-${cmp.id}">
+                Reabrir Campanha
+              </button>`
+            : ""
+        }
+        
+        ${
           cmp.status === "em_andamento"
             ? `<button class="btn btn-danger btn-sm" style="margin-top:8px;" id="btn-close-cmp-${cmp.id}">
               Encerrar Campanha e Voltar ao Trabalho Normal
@@ -152,6 +169,13 @@ class UIView {
       if (cmp.status === "em_andamento") {
         document.getElementById(`btn-close-cmp-${cmp.id}`).onclick = () =>
           onCloseCampaign(cmp.id);
+      }
+
+      if (cmp.status === "concluida") {
+        document.getElementById(`btn-reopen-cmp-${cmp.id}`).onclick = () =>
+          onReopenCampaign(cmp.id);
+        document.getElementById(`btn-archive-cmp-${cmp.id}`).onclick = () =>
+          onArchiveCampaign(cmp.id);
       }
     });
   }

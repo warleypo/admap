@@ -1,5 +1,6 @@
 class TerritoryModel {
-  constructor() {
+  constructor(uiView) {
+    this.uiView = uiView;
     this.appData =
       JSON.parse(localStorage.getItem("janubaTerritoriesData")) || [];
     this.campaignData =
@@ -158,6 +159,60 @@ class TerritoryModel {
           delete q.baseStatus;
         }
       });
+    });
+
+    this.save();
+  }
+
+  archiveCampaign(campaignId) {
+    const cmp = this.campaignData.find((c) => c.id === campaignId);
+    if (!cmp) return;
+    cmp.status = "arquivada";
+    this.save();
+  }
+
+  reopenCampaign(campaignId) {
+    const cmp = this.campaignData.find((c) => c.id === campaignId);
+    if (!cmp) return;
+
+    const active = this.campaignData.find((c) => c.status === "em_andamento");
+    if (active) {
+      this.uiView.showToast(
+        `🏁 Fechando campanha "${active.name}", 📂 Reabrindo "${cmp.name}"...`,
+      );
+      this.closeCampaign(active.id, new Date());
+    }
+
+    cmp.status = "em_andamento";
+    cmp.endDate = "";
+
+    this.appData.forEach((t) => {
+      t.quadras.forEach((q) => {
+        q.baseStatus = {
+          status: q.status,
+          startDate: q.startDate,
+          endDate: q.endDate,
+        };
+        q.status = "pendente";
+        q.startDate = cmp.startDate;
+        q.endDate = "";
+      });
+    });
+
+    this.campaignHistory.map((h) => {
+      if (h.campaignId === campaignId) {
+        const territory = this.appData.find((t) => t.name === h.territoryName);
+        if (territory) {
+          const quadra = territory.quadras.find(
+            (q) => q.number === h.quadraNumber,
+          );
+          if (quadra) {
+            quadra.status = h.status;
+            quadra.startDate = h.startDate;
+            quadra.endDate = h.endDate;
+          }
+        }
+      }
     });
 
     this.save();

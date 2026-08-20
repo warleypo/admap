@@ -45,6 +45,8 @@ class AppController {
     // Ações de Relatórios
     document.getElementById("btnGenerateContinuousReport").onclick = () =>
       this.generateReport("continuous");
+    document.getElementById("btnGenerateArchiveReport").onclick = () =>
+      this.generateReport("archive");
     document.getElementById("btnGenerateS13Report").onclick = () =>
       this.generateReport("s13");
     document.getElementById("btnCloseReportTypeModal").onclick = () =>
@@ -355,8 +357,11 @@ class AppController {
       btnCreate.style.display = "block";
     }
 
-    this.uiView.renderCampaignList(this.model.campaignData, (id) =>
-      this.closeCampaign(id),
+    this.uiView.renderCampaignList(
+      this.model.campaignData,
+      (id) => this.closeCampaign(id),
+      (idArchive) => this.archiveCampaign(idArchive),
+      (idReopen) => this.reopenCampaign(idReopen),
     );
     this.uiView.toggleModal("modalCampaign", true);
   }
@@ -396,6 +401,18 @@ class AppController {
     // this.uiView.renderCampaignList(this.model.campaignData, (id) =>
     //   this.closeCampaign(id),
     // );
+    this.renderAll();
+  }
+
+  archiveCampaign(campaignId) {
+    this.model.archiveCampaign(campaignId);
+    this.openCampaignModal(); // Reabre para atualizar a lista
+    this.renderAll();
+  }
+
+  reopenCampaign(campaignId) {
+    this.model.reopenCampaign(campaignId);
+    this.openCampaignModal(); // Reabre para atualizar a lista
     this.renderAll();
   }
 
@@ -493,12 +510,14 @@ class AppController {
     this.closeAssignmentModal();
   }
 
-  openReportFilterModal() {
+  openReportFilterModal(arquivadas = false) {
     const select = document.getElementById("reportCampaignSelect");
     select.innerHTML =
       '<option value="normal">Trabalho Contínuo / Normal</option>';
-    this.model.campaignData.forEach((c) => {
-      select.innerHTML += `<option value="${c.id}">Campanha: ${c.name} (${c.status === "em_andamento" ? "Ativa" : "Encerrada"})</option>`;
+    this.model.campaignData.map((c) => {
+      if (c.status === "arquivada" && !arquivadas) return; // Não renderiza campanhas arquivadas
+      if (c.status !== "arquivada" && arquivadas) return; // Não renderiza campanhas não arquivadas
+      select.innerHTML += `<option value="${c.id}">Campanha: ${c.name} (${c.status === "em_andamento" ? "Ativa" : c.status === "concluida" ? "Encerrada" : "Arquivada"})</option>`;
     });
     this.uiView.toggleModal("modalReportFilter", true);
   }
@@ -664,8 +683,8 @@ class AppController {
         console.log("Gerando relatório de Trabalho Contínuo / Normal...");
         this.openReportFilterModal();
         break;
-      case "campaign":
-        console.log("Gerando relatório de Campanha Especial...");
+      case "archive":
+        this.openReportFilterModal(true); //abre o filtro com as arquivadas
         break;
       case "s13":
         htmlContent = this.reportService.generateS13();
