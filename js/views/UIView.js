@@ -41,11 +41,38 @@ class UIView {
     document.getElementById(modalId).style.display = show ? "flex" : "none";
   }
 
-  renderTerritoryCards(appData, selectedId, editingShapeId, callbacks) {
+  toggleButtonAddQuadra(id, isEditing) {
+    const btn = document.getElementById(`btn-add-q-${id}`);
+    if (isEditing) {
+      btn.innerHTML = "❌ Cancelar";
+      btn.classList.remover("btn-primary");
+      btn.classList.add("btn-danger");
+    }
+  }
+
+  renderTerritoryCards(
+    appData,
+    selectedId,
+    editingShapeId,
+    callbacks,
+    isEditing = false,
+  ) {
     const listContainer = document.getElementById("territoryList");
     listContainer.innerHTML = "";
 
     appData.forEach((territory) => {
+      const isAddingQuadra = isEditing && territory.id === isEditing;
+      // Define a classe CSS e o rótulo do botão
+      const btnClass = isAddingQuadra ? "btn-danger" : "btn-primary";
+      const btnText = isAddingQuadra ? "❌ Cancelar" : "+ Quadra";
+
+      // Na criação do elemento do botão no HTML/DOM:
+      const addQuadraBtnHTML = `
+      <button class="btn btn-sm ${btnClass}" id="btn-add-q-${territory.id}">
+        ${btnText}
+      </button>
+    `;
+
       const total = territory.quadras.length;
       const completed = territory.quadras.filter(
         (q) => q.status === "concluida",
@@ -65,7 +92,7 @@ class UIView {
         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${percentage}%"></div></div>
         <div class="progress-text"><span>${completed} de ${total} concluídas</span><span><b>${percentage}%</b></span></div>
         <div class="card-actions">
-          <button class="btn btn-sm btn-primary" id="btn-add-q-${territory.id}">+ Quadra</button>
+          ${addQuadraBtnHTML}
           ${
             !isBeingEdited
               ? `<button class="btn btn-sm btn-warning" id="btn-edit-nodes-${territory.id}">✏️ Desenho</button>`
@@ -177,6 +204,51 @@ class UIView {
         document.getElementById(`btn-archive-cmp-${cmp.id}`).onclick = () =>
           onArchiveCampaign(cmp.id);
       }
+    });
+  }
+
+  /**
+   * Exibe um dialog de confirmação personalizado baseado em Promise
+   * @param {string} title Título do modal
+   * @param {string} message Mensagem de texto explicativa
+   * @param {string} confirmBtnText Rótulo do botão principal
+   * @param {string} confirmBtnClass Classe CSS do botão de confirmação (ex: btn-danger, btn-primary)
+   * @returns {Promise<boolean>} Retorna true se confirmado, false se cancelado
+   */
+  showConfirmDialog(
+    title = "⚠️ Confirmação",
+    message = "Deseja realmente prosseguir?",
+    confirmBtnText = "Confirmar",
+    confirmBtnClass = "btn-danger",
+  ) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById("customConfirmModal");
+      const titleEl = document.getElementById("customConfirmTitle");
+      const msgEl = document.getElementById("customConfirmMessage");
+      const btnOk = document.getElementById("btnCustomConfirmOk");
+      const btnCancel = document.getElementById("btnCustomConfirmCancel");
+      const btnClose = document.getElementById("btnCustomConfirmClose");
+
+      titleEl.textContent = title;
+      msgEl.innerHTML = message;
+      btnOk.textContent = confirmBtnText;
+
+      // Ajusta a cor/estilo do botão principal
+      btnOk.className = `btn ${confirmBtnClass}`;
+
+      modal.classList.remove("d-none");
+
+      const cleanup = (result) => {
+        modal.classList.add("d-none");
+        btnOk.onclick = null;
+        btnCancel.onclick = null;
+        btnClose.onclick = null;
+        resolve(result);
+      };
+
+      btnOk.onclick = () => cleanup(true);
+      btnCancel.onclick = () => cleanup(false);
+      btnClose.onclick = () => cleanup(false);
     });
   }
 }

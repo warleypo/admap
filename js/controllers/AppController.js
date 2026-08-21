@@ -22,6 +22,8 @@ class AppController {
     this.isAddingQuadraMode = false;
     this.selectedTerritoryIdForQuadra = null;
 
+    this.shiftKey = false;
+
     this.initEvents();
     this.renderAll();
   }
@@ -55,12 +57,24 @@ class AppController {
       this.closeReportTypeModal();
     document.getElementById("btnGenerateReport").onclick = () =>
       this.generateAndPrintReport();
+    document.getElementById("btnGeneratePercentageReport").onclick = () =>
+      this.generateReport("percentage");
 
-    document.getElementById("btnCloseServiceYear").onclick = () =>
-      this.campaignService.closeServiceYear(
-        this.openCampaignModal.bind(this),
-        "2026-2027",
+    document.getElementById("btnCloseServiceYear").onclick = async () => {
+      const confirmed = await this.uiView.showConfirmDialog(
+        "📦 Encerrar Ano de Serviço",
+        `Deseja realmente encerrar o ano de serviço (<strong>${this.model.getServiceYear(new Date())}</strong>)? Os dados serão salvos no histórico como uma campanha.`,
+        "Encerrar",
+        "btn-warning",
       );
+
+      if (confirmed) {
+        this.campaignService.closeServiceYear(
+          this.openCampaignModal.bind(this),
+        );
+        this.renderAll();
+      }
+    };
 
     document.getElementById("togglePrintGuide").onchange = (e) => {
       const guide = document.getElementById("a4PrintGuide");
@@ -89,6 +103,13 @@ class AppController {
       this.createNewCampaign();
     // document.getElementById("btnGenerateReport").onclick = () =>
     //   this.generateAndPrintReport();
+
+    // Cancela o modo de adição de quadras ao pressionar ESC
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.isAddingQuadraMode) {
+        this.disableAddQuadraMode();
+      }
+    });
   }
 
   renderAll() {
@@ -123,7 +144,16 @@ class AppController {
       {
         onSelect: (id) => this.selectTerritory(id),
         onEditInfo: (id) => this.editTerritoryInfo(id),
-        onAddQuadra: (id) => this.enableAddQuadraMode(id),
+        onAddQuadra: (id) => {
+          if (
+            this.isAddingQuadraMode &&
+            this.selectedTerritoryIdForQuadra === id
+          ) {
+            this.disableAddQuadraMode();
+          } else {
+            this.enableAddQuadraMode(id);
+          }
+        },
         onEditNodes: (id) => this.editTerritoryNodes(id),
         onSaveShape: (id) => this.saveTerritoryShape(id),
         onShareWhatsApp: (id) => {
@@ -133,6 +163,7 @@ class AppController {
         },
         onDelete: (id) => this.deleteTerritory(id),
       },
+      this.isAddingQuadraMode ? this.model.selectedTerritoryId : null,
     );
   }
 
@@ -250,14 +281,17 @@ class AppController {
     }
   }
 
-  deleteTerritory(id) {
+  async deleteTerritory(id) {
     const territory = this.model.appData.find((t) => t.id === id);
     if (!territory) return;
-    if (
-      confirm(
-        `Tem certeza que deseja excluir o território "${territory.name}" e todas as suas quadras?`,
-      )
-    ) {
+    const confirmed = await this.uiView.showConfirmDialog(
+      "🗑️ Excluir Território",
+      `Tem certeza de que deseja excluir o território <strong>${territory.name}</strong>? Esta ação não pode ser desfeita.`,
+      "Excluir Território",
+      "btn-danger",
+    );
+
+    if (confirmed) {
       this.model.deleteTerritory(id);
       this.uiView.showToast("Território excluído.");
       this.renderAll();
@@ -267,34 +301,63 @@ class AppController {
   enableAddQuadraMode(territoryId) {
     this.isAddingQuadraMode = true;
     this.selectedTerritoryIdForQuadra = territoryId;
+
+    const territory = this.model.appData.find((t) => t.id === territoryId);
+    const name = territory ? territory.name : "";
+
     this.uiView.showToast(
-      "📍 Clique no mapa onde deseja posicionar a nova quadra.",
+      `📍 Modo Adicionar Quadras (${name}): Clique no mapa para adicionar quadras. Pressione 'ESC' para finalizar.`,
+      6000,
     );
     this.mapView.map.getContainer().style.cursor = "crosshair";
+
+    this.renderAll();
   }
 
   handleMapClick(e) {
     if (!this.isAddingQuadraMode || !this.selectedTerritoryIdForQuadra) return;
+
     const quadra = this.model.addQuadra(
       this.selectedTerritoryIdForQuadra,
       e.latlng.lat,
       e.latlng.lng,
     );
-    this.isAddingQuadraMode = false;
-    this.selectedTerritoryIdForQuadra = null;
-    this.mapView.map.getContainer().style.cursor = "";
+
+    // this.isAddingQuadraMode = false;
+    // this.selectedTerritoryIdForQuadra = null;
+    // this.mapView.map.getContainer().style.cursor = "";
     if (quadra) {
       this.uiView.showToast(
-        `Quadra ${quadra.number} criada! Você pode arrastá-la no mapa para reposicionar.`,
+        `Quadra ${quadra.number} criada! Clique para adicionar mais ou 'ESC' para sair.`,
       );
       this.renderAll();
     }
+  }
+
+  disableAddQuadraMode() {
+    if (this.isAddingQuadraMode) {
+      this.isAddingQuadraMode = false;
+      this.selectedTerritoryIdForQuadra = null;
+      this.mapView.map.getContainer().style.cursor = "";
+      this.uiView.showToast("🛑 Adição de quadras finalizada.");
+    }
+    this.renderAll();
   }
 
   openQuadraModal(territoryId, quadraId) {
     const territory = this.model.appData.find((t) => t.id === territoryId);
     const quadra = territory.quadras.find((q) => q.id === quadraId);
     this.activeQuadraId = { territoryId, quadraId };
+
+    console.log(this.shiftKey);
+    if (this.shiftKey) {
+      this.model.deleteQuadra(
+        this.activeQuadraId.territoryId,
+        this.activeQuadraId.quadraId,
+      );
+      this.renderAll();
+      return;
+    }
 
     document.getElementById("modalQuadraTitle").innerText =
       `${territory.name} - Quadra ${quadra.number}`;
@@ -322,9 +385,15 @@ class AppController {
     this.renderAll();
   }
 
-  deleteCurrentQuadra() {
+  async deleteCurrentQuadra() {
     if (!this.activeQuadraId) return;
-    if (confirm("Tem certeza que deseja excluir esta quadra?")) {
+    const confirmed = await this.uiView.showConfirmDialog(
+      "🗑️ Excluir Quadra",
+      "Tem certeza que deseja remover esta quadra?",
+      "Remover",
+      "btn-danger",
+    );
+    if (confirmed) {
       this.model.deleteQuadra(
         this.activeQuadraId.territoryId,
         this.activeQuadraId.quadraId,
@@ -696,6 +765,10 @@ class AppController {
         break;
       case "s13":
         htmlContent = this.reportService.generateS13();
+        this.openPrintWindow(htmlContent);
+        break;
+      case "percentage":
+        htmlContent = this.reportService.generatePercentageReportHTML();
         this.openPrintWindow(htmlContent);
         break;
       default:

@@ -377,6 +377,18 @@
               Serviço.</small
             >
           </button>
+
+          <button
+            class="btn btn-outline-primary"
+            style="text-align: left; padding: 12px"
+            id="btnGeneratePercentageReport"
+          >
+            <strong>4. Progresso Porcentual dos Territórios</strong>
+            <br /><small class="text-muted"
+              >Relatório com percentual de conclusão individual baseado nas
+              quadras trabalhadas.</small
+            >
+          </button>
         </div>
 
         <div class="modal-actions" style="margin-top: 20px; text-align: right">
@@ -386,6 +398,31 @@
             id="btnCloseReportTypeModal"
           >
             Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal / Dialog de Confirmação Customizado -->
+    <div id="customConfirmModal" class="custom-modal-overlay d-none">
+      <div class="custom-modal-box">
+        <div class="custom-modal-header">
+          <h5 id="customConfirmTitle">⚠️ Confirmação</h5>
+          <button id="btnCustomConfirmClose" class="custom-modal-close">
+            &times;
+          </button>
+        </div>
+        <div class="custom-modal-body">
+          <p id="customConfirmMessage">
+            Tem certeza que deseja realizar esta ação?
+          </p>
+        </div>
+        <div class="custom-modal-footer">
+          <button id="btnCustomConfirmCancel" class="btn btn-secondary">
+            Cancelar
+          </button>
+          <button id="btnCustomConfirmOk" class="btn btn-danger">
+            Confirmar
           </button>
         </div>
       </div>

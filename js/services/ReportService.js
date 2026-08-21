@@ -208,4 +208,89 @@ class ReportService {
 
     return s13;
   }
+
+  /**
+   * Gera um relatório com o percentual de progresso de cada território
+   * baseado na quantidade de quadras concluídas.
+   */
+  getTerritoriesCompletionPercentage() {
+    const territories = this.model.appData || [];
+
+    return territories.map((territory) => {
+      const totalQuadras = territory.quadras.length;
+      const quadrasConcluidas = territory.quadras.filter(
+        (q) => q.status === "concluida",
+      ).length;
+      const quadrasAndamento = territory.quadras.filter(
+        (q) => q.status === "andamento",
+      ).length;
+      const quadrasPendentes = territory.quadras.filter(
+        (q) => q.status === "pendente",
+      ).length;
+
+      // Cálculo da porcentagem (evita divisão por zero)
+      const percentage =
+        totalQuadras > 0
+          ? Math.round((quadrasConcluidas / totalQuadras) * 100)
+          : 0;
+
+      return {
+        id: territory.id,
+        name: territory.name,
+        totalQuadras,
+        quadrasConcluidas,
+        quadrasAndamento,
+        quadrasPendentes,
+        percentage,
+      };
+    });
+  }
+
+  /**
+   * Gera a tabela HTML pronta para visualização e impressão
+   */
+  generatePercentageReportHTML() {
+    const data = this.getTerritoriesCompletionPercentage();
+
+    let rowsHTML = data
+      .map(
+        (t) => `
+      <tr>
+        <td><strong>${t.name}</strong></td>
+        <td style="text-align: center;">${t.totalQuadras}</td>
+        <td style="text-align: center; color: #166534;">${t.quadrasConcluidas}</td>
+        <td style="text-align: center; color: #854d0e;">${t.quadrasAndamento}</td>
+        <td style="text-align: center; color: #475569;">${t.quadrasPendentes}</td>
+        <td style="text-align: center; font-weight: bold;">${t.percentage}%</td>
+      </tr>
+    `,
+      )
+      .join("");
+
+    if (data.length === 0) {
+      rowsHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum território cadastrado.</td></tr>`;
+    }
+
+    return `
+    <div class="report-header">
+      <h2>📊 Relatório de Progresso por Território</h2>
+      <p>Janaúba - MG | Emitido em: ${new Date().toLocaleDateString("pt-BR")}</p>
+    </div>
+    <table border="1" style="width:100%; border-collapse: collapse; margin-top: 15px;">
+      <thead>
+        <tr style="background-color: #f1f5f9;">
+          <th style="text-align: left; padding: 8px;">Território / Bairro</th>
+          <th>Total Quadras</th>
+          <th>Concluídas</th>
+          <th>Em Andamento</th>
+          <th>Pendentes</th>
+          <th>Progresso</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHTML}
+      </tbody>
+    </table>
+  `;
+  }
 }
