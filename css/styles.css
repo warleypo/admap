@@ -52,8 +52,9 @@ hr {
 
 .header {
   padding: 15px 20px;
-  background: #1e3a8a;
-  color: white;
+  /* background: #1e3a8a; */
+  background: #f8f9fa;
+  /* color: white; */
 }
 .header h2 {
   font-size: 1.1rem;
@@ -65,7 +66,8 @@ hr {
 
 .actions {
   padding: 12px 15px;
-  background: #e2e8f0;
+  /* background: #e2e8f0; */
+  background: #f8f9fa;
   display: flex;
   flex-direction: column;
   gap: 8px;
